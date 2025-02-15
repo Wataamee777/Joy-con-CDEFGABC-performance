@@ -4,8 +4,8 @@ const notes = {
     'G': [180, 280], 'A': [200, 300], 'B': [220, 320], 'C2': [240, 340]
 };
 
-// 🔹【最初から音階ボタンを表示する】🔹
-document.addEventListener("DOMContentLoaded", () => createNoteButtons());
+// 🔹【スクリプト実行時にボタンを生成】🔹
+createNoteButtons();
 
 // Joy-ConをBluetooth接続
 async function connectJoyCon() {
@@ -26,6 +26,8 @@ async function connectJoyCon() {
 // 音階ボタンを作成
 function createNoteButtons() {
     const container = document.getElementById("buttons");
+    container.innerHTML = ""; // 既存のボタンを削除（再生成用）
+    
     Object.keys(notes).forEach(note => {
         const btn = document.createElement("button");
         btn.innerText = note;
