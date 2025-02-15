@@ -1,42 +1,31 @@
-let device, server, outputReport;
-
-// 音階の振動データ（簡易的な設定）
+let device = null; // Joy-Conのデバイス情報
 const notes = {
-    'C': [100, 200],
-    'D': [120, 220],
-    'E': [140, 240],
-    'F': [160, 260],
-    'G': [180, 280],
-    'A': [200, 300],
-    'B': [220, 320],
-    'C2': [240, 340]
+    'C': [100, 200], 'D': [120, 220], 'E': [140, 240], 'F': [160, 260],
+    'G': [180, 280], 'A': [200, 300], 'B': [220, 320], 'C2': [240, 340]
 };
 
-// Joy-Conと接続
+// 🔹【最初から音階ボタンを表示する】🔹
+document.addEventListener("DOMContentLoaded", () => createNoteButtons());
+
+// Joy-ConをBluetooth接続
 async function connectJoyCon() {
     try {
         device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
+            acceptAllDevices: true // optionalServices を削除
         });
 
-        server = await device.gatt.connect();
         console.log("Joy-Con connected:", device.name);
+        alert("接続成功！ボタンを押してみてください。");
 
-        alert("接続成功！音階ボタンを押して振動させてください。");
-
-        // 音階ボタンを生成
-        createNoteButtons();
     } catch (error) {
         console.error("接続失敗:", error);
-        alert("接続に失敗しました。");
+        alert("接続に失敗しました：" + error.message);
     }
 }
 
-// 音階ボタンの作成
+// 音階ボタンを作成
 function createNoteButtons() {
     const container = document.getElementById("buttons");
-    container.innerHTML = ""; // 既存のボタンを削除
-
     Object.keys(notes).forEach(note => {
         const btn = document.createElement("button");
         btn.innerText = note;
@@ -48,14 +37,10 @@ function createNoteButtons() {
 // Joy-Conを振動させる（仮）
 async function vibrateJoyCon(note) {
     if (!device) {
-        alert("Joy-Conが接続されていません！");
+        alert(`${note} の振動！（Joy-Con未接続のため仮実装）`);
         return;
     }
 
-    let pattern = notes[note] || [100, 200];
-
-    console.log(`Vibrating at ${pattern[0]}Hz and ${pattern[1]}Hz`);
-
-    // 実際にJoy-Conへ振動コマンドを送るにはHIDプロトコルが必要
-    alert(`${note} の振動！（仮実装）`);
+    console.log(`Vibrating at ${notes[note][0]}Hz and ${notes[note][1]}Hz`);
+    alert(`${note} の振動！（実際の振動制御は未実装）`);
 }
