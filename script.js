@@ -1,14 +1,11 @@
-let device = null; // Joy-Conのデバイス情報
+let device = null; 
 let server = null;
-let controlCharacteristic = null; // 振動用のCharacteristic
+let controlCharacteristic = null;
 
 const notes = {
-    'C': [100, 200], 'D': [120, 220], 'E': [140, 240], 'F': [160, 260],
-    'G': [180, 280], 'A': [200, 300], 'B': [220, 320], 'C2': [240, 340]
+    'C': 100, 'D': 120, 'E': 140, 'F': 160,
+    'G': 180, 'A': 200, 'B': 220
 };
-
-// 🔹【スクリプト実行時にボタンを生成】🔹
-createNoteButtons();
 
 // Joy-ConをBluetooth接続
 async function connectJoyCon() {
@@ -23,7 +20,10 @@ async function connectJoyCon() {
         controlCharacteristic = await service.getCharacteristic(0x0101);
 
         console.log("Joy-Con connected:", device.name);
-        alert("接続成功！ボタンを押して振動を試してください。");
+        alert("接続成功！音階ボタンを押して振動を試してください。");
+
+        // ボタン作成
+        createNoteButtons();
 
     } catch (error) {
         console.error("接続失敗:", error);
@@ -51,7 +51,7 @@ async function vibrateJoyCon(note) {
         return;
     }
 
-    let intensity = notes[note][0]; // 簡単な振動強度の設定
+    let intensity = notes[note]; // 音階に応じた振動強度
     let command = new Uint8Array([
         0x10, 0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40, // 振動コマンド
         intensity & 0xFF, (intensity >> 8) & 0xFF, 0, 0, 0, 0
@@ -59,7 +59,7 @@ async function vibrateJoyCon(note) {
 
     try {
         await controlCharacteristic.writeValue(command);
-        console.log(`Vibrating at intensity ${intensity}`);
+        console.log(`${note}の音階で振動を開始しました (強度: ${intensity})`);
     } catch (error) {
         console.error("振動エラー:", error);
         alert("振動に失敗しました：" + error.message);
