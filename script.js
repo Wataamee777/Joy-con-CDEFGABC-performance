@@ -17,7 +17,6 @@ async function connectJoyCon() {
     try {
         device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: ['battery_service', 0x180F]
         });
 
         server = await device.gatt.connect();
