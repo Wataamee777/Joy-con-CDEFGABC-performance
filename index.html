@@ -3,19 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <title>JoyCon WAV Player</title>
+</head>
+
+<body style="text-align:center;font-family:sans-serif">
+
+<h1>Joy-Con WAV Player</h1>
+
+<button id="connect">Joy-Con接続</button>
+<br><br>
+<input type="file" id="file" accept=".wav">
+
+<p id="status">待機中</p>
 
 <script type="module">
+
 import { JoyCon } from "https://cdn.jsdelivr.net/npm/joy-con-webhid@0.11.0/+esm";
+
+const status = document.getElementById("status");
 
 let joycons = [];
 
-async function connectJoycon(){
-    const jc = await JoyCon.connectJoyCon();
-    joycons.push(jc);
-    status.innerText = "Joy-Con接続: " + joycons.length;
-}
+document.getElementById("connect").addEventListener("click", async ()=>{
 
-async function playWav(file){
+    try{
+
+        const jc = await JoyCon.connectJoyCon();
+        joycons.push(jc);
+
+        status.textContent = "接続成功 " + joycons.length;
+
+    }catch(e){
+
+        console.error(e);
+        status.textContent="接続失敗";
+
+    }
+
+});
+
+document.getElementById("file").addEventListener("change", async (e)=>{
+
+    const file = e.target.files[0];
+    if(!file) return;
 
     const audioCtx = new AudioContext();
 
@@ -25,65 +54,42 @@ async function playWav(file){
     const data = audio.getChannelData(0);
 
     const sampleRate = audio.sampleRate;
+    const targetRate = 200;
+    const step = Math.floor(sampleRate/targetRate);
 
-    const targetRate = 200; 
-    const step = Math.floor(sampleRate / targetRate);
-
-    let i = 0;
+    let i=0;
 
     function tick(){
 
-        if(i >= data.length){
+        if(i>=data.length){
+
             joycons.forEach(j=>j.rumble(0,0,0,0));
-            status.innerText = "再生終了";
+            status.textContent="再生終了";
             return;
+
         }
 
-        const sample = data[i];
-
-        const amp = Math.min(1,Math.abs(sample)*2);
+        const amp=Math.abs(data[i]);
 
         joycons.forEach(j=>{
-            j.rumble(
-                160,
-                amp,
-                320,
-                amp
-            );
+
+            j.rumble(160,amp,320,amp);
+
         });
 
-        i += step;
+        i+=step;
 
         setTimeout(tick,1000/targetRate);
+
     }
 
-    status.innerText = "再生中";
+    status.textContent="再生中";
 
     tick();
-}
 
-window.onload=()=>{
-    document.getElementById("connect").onclick=connectJoycon;
+});
 
-    document.getElementById("file").onchange=(e)=>{
-        const f=e.target.files[0];
-        if(f) playWav(f);
-    };
-}
 </script>
-</head>
-
-<body style="font-family:sans-serif;text-align:center;margin-top:50px">
-
-<h1>JoyCon WAV Player</h1>
-
-<button id="connect">Joy-Con接続</button>
-
-<br><br>
-
-<input type="file" id="file" accept=".wav">
-
-<p id="status">待機中</p>
 
 </body>
 </html>
