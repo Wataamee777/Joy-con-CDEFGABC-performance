@@ -1,81 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>Joy-Con MIDI 演奏プレイヤー</title>
-    <!-- MIDI解析とJoyCon制御のライブラリ -->
-    <script src="https://unpkg.com/@tonejs/midi@2.0.28/build/Midi.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/joy-con-webhid@0.11.0/+esm"></script>
+<meta charset="UTF-8">
+<title>JoyCon WAV Player</title>
+
+<script type="module">
+import { JoyCon } from "https://cdn.jsdelivr.net/npm/joy-con-webhid@0.11.0/+esm";
+
+let joycons = [];
+
+async function connectJoycon(){
+    const jc = await JoyCon.connectJoyCon();
+    joycons.push(jc);
+    status.innerText = "Joy-Con接続: " + joycons.length;
+}
+
+async function playWav(file){
+
+    const audioCtx = new AudioContext();
+
+    const buffer = await file.arrayBuffer();
+    const audio = await audioCtx.decodeAudioData(buffer);
+
+    const data = audio.getChannelData(0);
+
+    const sampleRate = audio.sampleRate;
+
+    const targetRate = 200; 
+    const step = Math.floor(sampleRate / targetRate);
+
+    let i = 0;
+
+    function tick(){
+
+        if(i >= data.length){
+            joycons.forEach(j=>j.rumble(0,0,0,0));
+            status.innerText = "再生終了";
+            return;
+        }
+
+        const sample = data[i];
+
+        const amp = Math.min(1,Math.abs(sample)*2);
+
+        joycons.forEach(j=>{
+            j.rumble(
+                160,
+                amp,
+                320,
+                amp
+            );
+        });
+
+        i += step;
+
+        setTimeout(tick,1000/targetRate);
+    }
+
+    status.innerText = "再生中";
+
+    tick();
+}
+
+window.onload=()=>{
+    document.getElementById("connect").onclick=connectJoycon;
+
+    document.getElementById("file").onchange=(e)=>{
+        const f=e.target.files[0];
+        if(f) playWav(f);
+    };
+}
+</script>
 </head>
-<body style="font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 50px;">
 
-    <h1>Joy-Con MIDI Player</h1>
-    <div style="background: white; padding: 30px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        
-        <button id="connect" style="background: #e60012; color: white; border: none; padding: 15px 30px; font-weight: bold; border-radius: 5px; cursor: pointer;">
-            1. Joy-Conを接続する
-        </button>
-        
-        <div id="file-section" style="margin-top: 30px; display: none;">
-            <p>MIDIファイル(.mid)をアップロードしてください</p>
-            <input type="file" id="midi-file" accept=".mid">
-        </div>
+<body style="font-family:sans-serif;text-align:center;margin-top:50px">
 
-        <p id="status" style="margin-top: 20px; color: #666;">BluetoothでJoy-Conをペアリングしてから開始してください</p>
-    </div>
+<h1>JoyCon WAV Player</h1>
 
-    <script>
-        let joyCons = [];
+<button id="connect">Joy-Con接続</button>
 
-        // 1. 接続処理
-        document.getElementById('connect').onclick = async () => {
-            try {
-                // Joy-Conをスキャンして接続
-                joyCons = await JoyCon.requestJoyCon();
-                if (joyCons.length > 0) {
-                    document.getElementById('status').innerText = `${joyCons.length}台のJoy-Conが準備完了！`;
-                    document.getElementById('file-section').style.display = 'block';
-                    document.getElementById('connect').style.background = "#28a745";
-                    document.getElementById('connect').innerText = "接続済み";
-                }
-            } catch (error) {
-                console.error(error);
-                alert("接続に失敗しました。Chromeなどの対応ブラウザを使用してください。");
-            }
-        };
+<br><br>
 
-        // 2. MIDIファイル読み込み & 再生
-        document.getElementById('midi-file').onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+<input type="file" id="file" accept=".wav">
 
-            const arrayBuffer = await file.arrayBuffer();
-            const midi = new Midi(arrayBuffer);
+<p id="status">待機中</p>
 
-            document.getElementById('status').innerText = "♪ 演奏中...";
-
-            midi.tracks.forEach(track => {
-                track.notes.forEach(note => {
-                    // Joy-Conが鳴りやすい周波数帯に調整（低すぎる場合は12や24足してオクターブを上げる）
-                    const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
-                    
-                    // MIDIの開始時間に合わせてスケジュール
-                    setTimeout(() => {
-                        joyCons.forEach(jc => {
-                            // 振動コマンド送信（周波数, 振幅）
-                            // note.velocityは0.0〜1.0
-                            jc.rumble(freq, note.velocity * 0.3); 
-                        });
-
-                        // ノートオフ（音を止める）
-                        setTimeout(() => {
-                            joyCons.forEach(jc => jc.rumble(0, 0));
-                        }, note.duration * 1000);
-
-                    }, note.time * 1000);
-                });
-            });
-        };
-    </script>
 </body>
 </html>
